@@ -40,8 +40,37 @@ app.get(
 );
 
 // GET '/user/:id' に一致するGETの挙動
-app.get("/user/:id", (req, res) => {
-  res.status(200).send(req.params.id);
+app.get("/user/:id", async (req, res) => {
+  try {
+    const key = `users:${req.params.id}`;
+    const val = await redis.get(key);
+    const user = JSON.parse(val);
+    res.status(200).json(user);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("internal error");
+  }
+});
+
+app.get("/users", async (req, res) => {
+  try {
+    const stream = redis.scanStream({
+      match: "users:*",
+      count: 2, // 1回のy鼻出しで２つ取り出す
+    });
+    const users = [];
+    for await (const resultkeys of stream) {
+      for (const key of resultkeys) {
+        const value = await redis.get(key);
+        const user = JSON.parse(value);
+        users.push(user);
+      }
+    }
+    res.status(200).json(users);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("internal error");
+  }
 });
 
 redis.once("ready", async () => {
