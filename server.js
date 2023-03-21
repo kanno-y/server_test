@@ -7,8 +7,19 @@ const redis = new Redis({
   port: 6379,
   host: "localhost",
   password: process.env.REDIS_PASSWORD,
-  enableOfflineQueue: false,
+  // enableOfflineQueue: false,
 });
+
+// Redisに初期データをセットする
+const init = async () => {
+  // Promise.allで同時にセットする
+  await Promise.all([
+    redis.set("users:1", JSON.stringify({ id: 1, name: "alpha" })),
+    redis.set("users:2", JSON.stringify({ id: 2, name: "bravo" })),
+    redis.set("users:3", JSON.stringify({ id: 3, name: "charlie" })),
+    redis.set("users:4", JSON.stringify({ id: 4, name: "delta" })),
+  ]);
+};
 
 // ルーティングとミドルウェア
 
@@ -33,8 +44,10 @@ app.get("/user/:id", (req, res) => {
   res.status(200).send(req.params.id);
 });
 
-redis.once("ready", () => {
+redis.once("ready", async () => {
   try {
+    await init(); // initを実行
+
     // ポート：3000でサーバーを起動
     app.listen(3000, () => {
       // サーバー起動後に呼び出されるCallback
