@@ -25,8 +25,18 @@ app.get("/user/:id", (req, res) => {
   res.status(200).send(req.params.id);
 });
 
+const errorMiddleware = (req, res, next) => {
+  next(new Error("ミドルウェアからのエラー"));
+};
+
+app.get("/err", errorMiddleware, (req, res) => {
+  console.log("errルート");
+  res.status(200).send("errルート");
+});
+
 // 包括的エラーハンドリング
 app.use((err, req, res, next) => {
+  console.log(err);
   res.status(500).send("Internal Server Error");
 });
 
