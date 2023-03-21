@@ -1,6 +1,14 @@
+const Redis = require("ioredis");
 const express = require("express");
 // サーバー用のインスタンスを作成
 const app = express();
+
+const redis = new Redis({
+  port: 6379,
+  host: "localhost",
+  password: process.env.REDIS_PASSWORD,
+  enableOfflineQueue: false,
+});
 
 // ルーティングとミドルウェア
 
@@ -25,6 +33,24 @@ app.get("/user/:id", (req, res) => {
   res.status(200).send(req.params.id);
 });
 
+redis.once("ready", () => {
+  try {
+    // ポート：3000でサーバーを起動
+    app.listen(3000, () => {
+      // サーバー起動後に呼び出されるCallback
+      console.log("start listening");
+    });
+  } catch (err) {
+    console.error(err);
+    process.exit(1);
+  }
+});
+
+redis.on("error", (err) => {
+  console.error(err);
+  process.exit(1);
+});
+
 const errorMiddleware = (req, res, next) => {
   next(new Error("ミドルウェアからのエラー"));
 };
@@ -38,10 +64,4 @@ app.get("/err", errorMiddleware, (req, res) => {
 app.use((err, req, res, next) => {
   console.log(err);
   res.status(500).send("Internal Server Error");
-});
-
-// ポート：3000でサーバーを起動
-app.listen(3000, () => {
-  // サーバー起動後に呼び出されるCallback
-  console.log("start listening");
 });
